@@ -6,6 +6,11 @@ publish = false
 description = "OS-notification shell adapter for spt-core — renders typed notify commands and surfaced notifs as native OS notifications (Windows toast / Linux notify-send). Standalone: the manifest + this binary are the only glue; zero spt-core source integration."
 license = "MIT"
 
+# Standalone guard: when this repo is cloned inside another cargo workspace
+# (spt-core's CI hook checks it out into the workspace dir), cargo must not
+# try to adopt it as a member.
+[workspace]
+
 [[bin]]
 name = "notify-shell"
 path = "src/main.rs"
