@@ -1,0 +1,55 @@
+# OS-notification shell adapter — the spt-core real-shell dogfood (M5-D8).
+# A `kind = "shell"` adapter: the manifest + the `notify-shell` binary are the
+# ONLY glue between this project and spt-core. The binary speaks nothing but
+# the public `spt api` surface and the documented EVENT envelope wire format.
+#
+# Two render paths, both declared here:
+#   - the `notify` capability: an owner agent drives a toast explicitly
+#     (`spt shell cmd <id> notify <title> <body>`) down the durable command
+#     channel; the resident binary drains and renders.
+#   - the `[session.notif]` template: spt-core spawns it detached whenever a
+#     subnet notif SURFACES at an endpoint this shell is attached to
+#     (`spt notify` → presence resolution → native toast on the node the user
+#     last touched).
+#
+# `spawn` resolves `notify-shell` on PATH; a test/CI registration may rewrite
+# the templates with absolute paths.
+
+[adapter]
+name = "notify"
+kind = "shell"
+version = "1.0.0"
+min_spt_core_version = "1.0.0"
+
+[shell]
+spawn = "notify-shell --link {link_token} --id {id}"
+# A display is node-local; discovery never offers it off-node.
+broadcast = "same-node"
+# Auto-online with the owner: a notification surface should be up whenever
+# the user's endpoint is.
+persistent = true
+# First spawn asks once, the grant is remembered (the sane floor for a shell
+# that can pop UI on the user's screen).
+require_approval = "remembered"
+# Relay command receipt (the default): the binary drains `api poll --link`.
+pre_close = "closing"
+close_timeout_ms = 2000
+# Offline wake: the display is assumed always-ready, so the watcher reports
+# wake (exit 86) after a short settle — the shell self-revives whenever its
+# owner state admits it.
+wake_command = "notify-shell --wake"
+
+# The whole command vocabulary: one verb. `title`/`body` map positionally
+# from `spt shell cmd <id> notify <title> <body>`.
+[shell.capabilities.notify]
+args = ["title", "body"]
+
+# The notif render seam: spt-core fills {notif_*} keys and spawns this
+# detached when a notif surfaces at an endpoint with this shell attached.
+# One-shot: render and exit. The keys are quoted so spaces survive spt-core's
+# quote-honoring tokenizer (an embedded double-quote in a body renders
+# mangled, never breaks the spawn).
+[session.notif]
+command = 'notify-shell --render-title "{notif_from}" --render-body "{notif_body}"'
+detach = true
+keys = ["notif_id", "notif_from", "notif_subnet", "notif_body"]

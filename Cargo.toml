@@ -1,0 +1,15 @@
+[package]
+name = "spt-shell-notify"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "OS-notification shell adapter for spt-core — renders typed notify commands and surfaced notifs as native OS notifications (Windows toast / Linux notify-send). Standalone: the manifest + this binary are the only glue; zero spt-core source integration."
+license = "MIT"
+
+[[bin]]
+name = "notify-shell"
+path = "src/main.rs"
+
+[dependencies]
+# The notify command's named args ride as a JSON object in the frame body.
+serde_json = "1"
